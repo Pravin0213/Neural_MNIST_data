@@ -32,6 +32,10 @@ class Network(object):
     def cost_derivative(self, output_activations, y):
         return (output_activations - y)
     
+    def cross_entropy_derivative(self, output_activations, y):
+        """Cross-entropy loss function."""
+        return (output_activations - y)/(output_activations * (1 - output_activations)) 
+    
     def SGD(self, training_data, epochs, mini_batch_size, eta, test_data=None):
         
         if test_data:
@@ -39,14 +43,75 @@ class Network(object):
             n_test = len(test_data)
         training_data = list(training_data)
         n = len(training_data)
-        start_time = time.time()
+
+        previous_accuracy = 0
+        eta_values = [3,2,1,0.1]  # Learning rate schedule
+        eta_index = 0  # Start with the first eta value
+
         for j in range(epochs):
             random.shuffle(training_data)
             mini_batches = [training_data[k:k+mini_batch_size] for k in range(0, n, mini_batch_size)]
-            print('mini_batches:', mini_batches[0][0])
-            batch_time = time.time() - start_time
-            print('batch_time:', batch_time)
+            
+            for mini_batch in mini_batches:
+                nabla_b = [np.zeros(b.shape) for b in self.biases]
+                nabla_w = [np.zeros(w.shape) for w in self.weights]
+                for x, y in mini_batch:
+                    delta_nabla_b = [np.zeros(b.shape) for b in self.biases]
+                    delta_nabla_w = [np.zeros(w.shape) for w in self.weights]
+                    activation = x
+                    activations = [x]
+                    zs = []
+                    # feedforward to find all activations
+                    for b, w in zip(self.biases, self.weights):
+                        z = np.dot(w, activation) + b
+                        zs.append(z)
+                        activation = self.sigmoid(z)
+                        activations.append(activation)
 
+                    # backward pass to find bias and weight gradients at the output layer    
+                    #delta = self.cost_derivative(activations[-1] ,y)*self.sigmoid_prime(zs[-1])
+
+                    delta = self.cross_entropy_derivative(activations[-1] ,y)*self.sigmoid_prime(zs[-1])
+
+                    delta_nabla_b[-1] = delta
+                    delta_nabla_w[-1] = np.dot(delta, activations[-2].transpose())
+
+                    # backward pass to find bias and weight gradients at the hidden layers. We start from the second last layer and go backwards
+                    # until we reach the first layer. We use the chain rule to compute the gradients.
+                    for l in range(2, self.num_layers):
+                        z = zs[-l]
+                        sp = self.sigmoid_prime(z)
+                        delta = np.dot(self.weights[-l+1].transpose(), delta) * sp
+                        delta_nabla_b[-l] = delta
+                        delta_nabla_w[-l] = np.dot(delta, activations[-l-1].transpose())
+                    
+                    # Adds all the weights and biases of each data set in the mini batch to the nabla_w and nabla_b respectively
+                    nabla_b = [nb+dnb for nb, dnb in zip(nabla_b, delta_nabla_b)]
+                    nabla_w = [nw+dnw for nw, dnw in zip(nabla_w, delta_nabla_w)]
+
+                # Update small portion (eta) of averages of weight and bias that were found from one mini batch
+                self.weights = [w-(eta/len(mini_batch))*nw for w, nw in zip(self.weights, nabla_w)]
+                self.biases = [b-(eta/len(mini_batch))*nb for b, nb in zip(self.biases, nabla_b)]
+
+            if test_data:
+                current_accuracy = self.evaluate(test_data) / n_test
+                print("Epoch {0}: {1} / {2} ({3:.2f}%)".format(j, int(current_accuracy * n_test), n_test, current_accuracy * 100))
+                
+                if current_accuracy - previous_accuracy < 0 and eta_index < len(eta_values) - 1:
+                    eta_index += 1  # Move to the next eta value
+                    eta = eta_values[eta_index]
+                    print(f"Learning rate adjusted to {eta}")
+                
+                previous_accuracy = current_accuracy
+                
+            else:
+                print("Epoch {0} complete".format(j))
+                    
+                
+    def evaluate(self, test_data):
+        test_results = [(np.argmax(self.feedforward(x)), y) for (x, y) in test_data]
+  
+        return sum(int(x == y) for (x, y) in test_results)
 
 
 def load_data():
@@ -74,6 +139,6 @@ def load_data_wrapper():
 
 training_data, validation_data, test_data = load_data_wrapper()
 
-net = Network([784, 10])
+net = Network([784, 30, 30, 10])
 
-net.SGD(training_data, 2, 100, 3, test_data=test_data)
+net.SGD(training_data, 40, 10, 3, test_data=test_data)
