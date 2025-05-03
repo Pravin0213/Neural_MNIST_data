@@ -25,7 +25,16 @@ class CrossEntropyCost(object):
     @staticmethod
     def delta(z, a, y):
         return (a-y)
+    
+class SoftmaxCost(object):
 
+    @staticmethod
+    def fn(a, y):
+        return np.sum(np.nan_to_num(-y*np.log(a)))
+
+    @staticmethod
+    def delta(z, a, y):
+        return (a-y) / (a * (1 - a))
 
 class Network(object):
     def __init__(self, sizes, cost=CrossEntropyCost):
@@ -105,7 +114,7 @@ class Network(object):
                         activation = self.sigmoid(z)
                         activations.append(activation)
 
-                    
+    
                     delta = self.cost.delta(zs[-1],activations[-1] ,y)
                     delta_nabla_b[-1] = delta
                     delta_nabla_w[-1] = np.dot(delta, activations[-2].transpose())
