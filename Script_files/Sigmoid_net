@@ -26,21 +26,26 @@ class CrossEntropyCost(object):
     def delta(z, a, y):
         return (a-y)
     
-class SoftmaxCost(object):
+class default_weights(object):
+    def weights(sizes):
+        """Initialize weights and biases to zero."""
+        biases = [np.random.randn(y, 1) for y in sizes[1:]]
+        weights = [np.random.randn(y, x)/np.sqrt(x) for x, y in zip(sizes[:-1], sizes[1:])]
+        return biases, weights
 
-    @staticmethod
-    def fn(a, y):
-        return np.sum(np.nan_to_num(-y*np.log(a)))
-
-    @staticmethod
-    def delta(z, a, y):
-        return (a-y) / (a * (1 - a))
+class large_weights(object):
+    def weights(sizes):
+        """Initialize weights and biases to large values."""
+        biases = [np.random.randn(y, 1) for y in sizes[1:]]
+        weights = [np.random.randn(y, x) for x, y in zip(sizes[:-1], sizes[1:])]
+        return biases, weights
+    
 
 class Network(object):
-    def __init__(self, sizes, cost=CrossEntropyCost):
+    def __init__(self, sizes, cost=CrossEntropyCost, weights=large_weights):
         self.num_layers = len(sizes)
         self.sizes = sizes
-        self.default_weights()
+        self.biases , self.weights = weights.weights(sizes)
         self.cost=cost
 
     def default_weights(self):
