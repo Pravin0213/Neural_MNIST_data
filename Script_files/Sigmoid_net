@@ -155,7 +155,18 @@ class Network(object):
                 
             else:
                 print("Epoch {0} complete".format(j))
-                    
+
+
+    def save_weights_and_biases(self, weights_file='weights.pkl', biases_file='biases.pkl'):
+        """Save weights and biases to pickle files."""
+        with open(weights_file, 'wb') as wf:
+            pickle.dump(self.weights, wf)
+        with open(biases_file, 'wb') as bf:
+            pickle.dump(self.biases, bf)
+        print(f"Weights saved to {weights_file} and biases saved to {biases_file}")
+
+
+
                 
 def load_data():
     f = gzip.open('D:/Neural_Network/data/mnist.pkl.gz', 'rb')
@@ -184,4 +195,6 @@ training_data, validation_data, test_data = load_data_wrapper()
 
 net = Network([784, 100, 10])
 
-net.SGD(training_data, 30, 10, 0.5, 5, test_data=test_data)
+net.SGD(training_data, 15, 10, 0.5, 5, test_data=test_data)
+
+net.save_weights_and_biases(weights_file='weights.pkl', biases_file='biases.pkl')
