@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, jsonify, send_file , render_template
 import numpy as np
 from PIL import Image
 from io import BytesIO
@@ -53,11 +53,6 @@ def center_image(pixels):
     return new_img.reshape(-1, 1)
 
 
-
-
-
-
-
 def softmax(x):
     e_x = np.exp(x - np.max(x))  # for numerical stability
     return e_x / e_x.sum()
@@ -74,8 +69,20 @@ net = Network(weights, biases)    # Placeholder for testing
 
 
 @app.route('/')
-def serve_index():
-    return send_file('index.html')
+def home():
+    return render_template('base.html')
+
+# Digit recognizer page
+@app.route('/recognizer')
+def recognizer():
+    return render_template('recognizer.html')
+
+# About page
+@app.route('/about')
+def about():
+    return render_template('about.html')
+
+
 
 @app.route('/predict', methods=['POST'])
 def predict():
