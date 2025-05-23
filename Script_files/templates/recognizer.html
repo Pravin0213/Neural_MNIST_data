@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Handwritten Digit Recognition</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+
+<body class="bg-gray-800 flex flex-col items-center justify-center min-h-screen">
+  <h1 class="text-3xl text-white font-bold mb-4">Handwritten Digit Recognition</h1>
+  <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+
+
+    <div class="flex space-x-4 mb-4">
+      <div id="canvasContainer" class="mb-4"></div>
+      <div id="previewContainer" style="margin-top: 20px;"></div>
+      <div class = "flex flex-col space-x-4 mb-4">
+        <div id="prediction" class="text-lg text-white text-center"></div>
+        <canvas id="confidenceChart" width="250" height="250"></canvas>
+      </div>
+    </div>
+
+    <div class="flex space-x-4 mb-4">
+      <button id="predictButton" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+        Predict Digit
+      </button>
+      <button id="clearButton" class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">
+        Clear Canvas
+      </button>
+    </div>
+    
+  </div>
+</body>
+  
+<footer class="mt-8 text-white">
+  <p>Built by Praveen | <a href="projects.html" class="underline">More Projects</a></p>
+</footer>
+
+
+<script>
+  let sketch = function(p) {
+    let canvas;
+    p.setup = function() {
+      p.pixelDensity(1); 
+      canvas = p.createCanvas(280, 280); // Larger canvas for better visibility
+      canvas.parent('canvasContainer');
+      p.background(255); // White background
+      canvas.style('border', '4px solid black'); 
+      p.stroke(0); // Black stroke
+      p.strokeWeight(30); // Adjust stroke weight for better drawing
+    };
+
+    p.mouseDragged = function() {
+      if (p.mouseX >= 0 && p.mouseX < p.width && p.mouseY >= 0 && p.mouseY < p.height) {
+        p.line(p.pmouseX, p.pmouseY, p.mouseX, p.mouseY);
+      }
+    };
+
+    p.getPixelData = function() {
+      p.loadPixels();
+      const pixels = [];
+      for (let i = 0; i < p.pixels.length; i += 4) {
+        const r = p.pixels[i];     // Red
+        const g = p.pixels[i + 1]; // Green
+        const b = p.pixels[i + 2]; // Blue
+        // Average grayscale
+        const grayscale = (r + g + b) / 3;
+        const normalized = grayscale / 255;
+        const inverted = 1 - normalized;     // Black ink → 1.0
+        pixels.push(inverted); 
+      }
+      console.log("Pixel data length is :", pixels.length);
+      return pixels;
+    };
+
+    p.clearCanvas = function() {
+      p.background(255); // Clear canvas to white
+    };
+  };
+
+  let myp5 = new p5(sketch);
+
+  document.getElementById('predictButton').addEventListener('click', async () => {
+    const pixels = myp5.getPixelData();
+    try {
+      const response = await fetch('/predict', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pixels })
+      });
+      const result = await response.json();
+      const prediction = result.prediction;
+      const confidences = result.confidences;
+      const centred_image = result.image;
+
+      let output = `Predicted Digit: ${prediction}`;
+      document.getElementById('prediction').innerHTML = output;
+
+
+      const imgElement = document.createElement('img');
+      imgElement.src = `data:image/png;base64,${centred_image}`;
+      imgElement.alt = 'Processed 28x28 Image';
+      imgElement.style.border = '1px solid black';
+      imgElement.style.marginTop = '10px';
+      imgElement.style.imageRendering = 'pixelated'; // Ensures pixelated look when scaled
+      imgElement.style.width = '140px'; // Upscale for better visibility
+      imgElement.style.height = '140px'; // Upscale for better visibility
+
+      const previewContainer = document.getElementById('previewContainer');
+      previewContainer.innerHTML = ''; // Clear any previous content
+      previewContainer.appendChild(imgElement); // Add the new image
+
+      // Create chart
+      const labels = confidences.map(c => c.digit);
+      const data = confidences.map(c => c.prob);
+      if (window.confidenceChart instanceof Chart) {window.confidenceChart.destroy();} // Destroy previous chart if it exists
+      const ctx = document.getElementById('confidenceChart').getContext('2d');
+      window.confidenceChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Confidence (%)',
+            data: data,
+            backgroundColor: 'rgba(54, 162, 235, 0.6)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {responsive: false, maintainAspectRatio: false,scales: {y: {beginAtZero: true,max: 100}}}
+      });
+
+
+    } catch (error) {
+      document.getElementById('prediction').innerHTML = 'Error: Could not connect to server';
+      console.error(error);
+    }
+  });
+
+  document.getElementById('clearButton').addEventListener('click', () => {
+    myp5.clearCanvas();
+    document.getElementById('prediction').innerHTML = '';
+  });
+</script>
+

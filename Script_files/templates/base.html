@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}My App{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Tailwind CSS CDN for easy styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-700 min-h-screen text-gray-100">
+    <nav class="bg-gray-800 shadow-md  rounded-lg mx-auto mt-6 w-full max-w-2xl flex justify-center py-4">
+        <h1 class="text-white text-xl font-bold">Hello, I'm Praveen</h1>
+    </nav>
+    <div class="max-w-2xl mx-auto mt-8">
+        {% block content %}
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-10">
+            <!-- Box 1: Home -->
+            <div class="bg-gray-800 rounded-lg p-6 border-2 border-gray-700 hover:bg-gray-700 transition duration-300">
+                <a href="{{ url_for('home') }}" class="block w-full  text-white font-semibold py-2 rounded text-center">Home</a>
+            </div>
+            <!-- Box 2: Digit Recognizer -->
+            <div class="bg-gray-800 rounded-lg p-6 border-2 border-gray-700 hover:bg-gray-700 transition duration-300">
+                <a href="{{ url_for('recognizer') }}" class="block w-full text-white font-semibold py-2 rounded hover: transition text-center">Digit Recognizer</a>
+            </div>
+            <!-- Box 3: About -->
+            <div class="bg-gray-800 rounded-lg p-6 border-2 border-gray-700 hover:bg-gray-700 transition duration-300">
+                <a href="{{ url_for('about') }}" class="block w-full  text-white font-semibold py-2 rounded hover: transition text-center">About</a>
+            </div>
+        </div>
+        {% endblock %}
+    </div>
+</body>
+</html>
